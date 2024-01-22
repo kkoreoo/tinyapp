@@ -16,5 +16,8 @@
   "bugs": {
     "url": "https://github.com/kkoreoo/tinyapp/issues"
   },
-  "homepage": "https://github.com/kkoreoo/tinyapp#readme"
+  "homepage": "https://github.com/kkoreoo/tinyapp#readme",
+  "dependencies": {
+    "express": "^4.18.2"
+  }
 }
