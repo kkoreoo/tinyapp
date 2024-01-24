@@ -24,6 +24,16 @@ function generateRandomString () {
   return shortID;
 };
 
+// READ // Renders the page /register
+app.get("/register", (req, res) => {
+  res.render("register");
+});
+
+// CREATE // Retrieves the Registration data inputted
+// app.post("/register", (req, res) => {
+
+// })
+
 // CREATE /// Retrieves Login username from input
 app.post("/login", (req, res) => {
   res.cookie('username', req.body.username);
