@@ -3,9 +3,11 @@ const cookieParser = require('cookie-parser');
 const app = express();
 const PORT = 8080; 
 
+// middleware
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
+// configs our render to ejs 
 app.set("view engine", "ejs")
 
 const urlDatabase = {
@@ -14,16 +16,31 @@ const urlDatabase = {
 };
 
 const users = {
+  uZinGM: {
+    id: "uZinGM",
+    email: "a@a.com",
+    password: "1234",
+  },
+  zNLYPg: {
+    id: "zNLYPg",
+    email: "b@b.com",
+    password: "4321",
+  },
 };
 
-// function getUserbyEmail (obj, email) {
-//   const userDetails = Object.values(obj);
-//   const user = '';
-//   if(userDetails.includes(email)) {
-//     user = userDetails.email;
-//   } 
-    
-// };
+// will get an array of all the users details, look at all the emails to see if a duplicate is being used for registration creation
+function getUserbyEmail (obj, email) {
+  let userDetails = '';
+
+  for (let id in obj) {
+    userDetails += Object.values(obj[id]);
+  };
+
+  if(userDetails.includes(email)) {
+    return true;
+  } 
+  return false;
+};
 
 
 //short ID generator
@@ -46,16 +63,19 @@ app.get("/register", (req, res) => {
 app.post("/register", (req, res) => {
   const user = {};
   const userID = generateRandomString()
+  const email = req.body.email;
+  const password = req.body.password;
+
+  if(!email || !password || getUserbyEmail(users, email)) {
+    return res.status(400).send("Error: Status Code 400");
+  } 
+
   user.id = userID
-  user.email = req.body.email;
-  user.password = req.body.password;
+  user.email = email;
+  user.password = password;
   users[userID] = user;
-  if(!user.email || !user.password) {
-    res.status(400).send("Error: Status Code 400");
-  } else {
-    res.cookie('user_id', user.id);
-    res.redirect("/urls");
-  }
+  res.cookie('user_id', user.id);
+  res.redirect("/urls");
 });
 
 // CREATE /// Retrieves Login username from input
@@ -79,7 +99,7 @@ app.get("/urls", (req, res) => {
     user, 
     urls: urlDatabase 
   };
-  console.log(templateVars);
+  console.log('users: ', users);
   res.render("urls_index", templateVars);
 });
 
