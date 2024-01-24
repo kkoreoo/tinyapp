@@ -10,11 +10,13 @@ app.use(cookieParser());
 // configs our render to ejs 
 app.set("view engine", "ejs")
 
+
 const urlDatabase = {
   "b2xVn2": "http://www.lighthouselabs.ca",
   "9sm5xK": "http://www.google.com"
 };
 
+// Users Database
 const users = {
   uZinGM: {
     id: "uZinGM",
@@ -28,7 +30,7 @@ const users = {
   },
 };
 
-// will get an array of all the users details, look at all the emails to see if a duplicate is being used for registration creation
+// Given an email will find the user with the associated email if present
 function getUserbyEmail (obj, email) {
   let user = '';
 
@@ -57,8 +59,10 @@ function generateRandomString () {
 // REGISTRATION-GET /// Renders the page /register
 app.get("/register", (req, res) => {
   const user = users[req.cookies["user_id"]];
-  const templateVars = { user };
-  res.render("register", templateVars);
+  if (user) {
+    res.redirect("/urls");
+  }
+  res.render("register");
 });
 
 // REGISTRATION-POST /// Retrieves the Registration data inputted
@@ -84,6 +88,10 @@ app.post("/register", (req, res) => {
 
 // LOGIN-GET // Renders login page 
 app.get("/login", (req, res) => {
+  const user = users[req.cookies["user_id"]];
+  if (user) {
+    res.redirect('/urls');
+  }
   res.render('login');
 })
 
@@ -123,12 +131,20 @@ app.get("/urls", (req, res) => {
 // ADD URL-GET /// Page to enter a new url;
 app.get("/urls/new", (req, res) => {
   const user = users[req.cookies["user_id"]];
+  if (!user) {
+    res.redirect('/urls');
+  }
   const templateVars = { user };
   res.render("urls_new", templateVars);
 });
 
 // ADD URL-POST /// New Url added will redirect to show only that url in our website
 app.post("/urls", (req, res) => {
+  const user = users[req.cookies["user_id"]];
+
+  if (!user) {
+    return res.status(401).send("You must be logged in to use this feature!");
+  }
   shortID = generateRandomString();
   urlDatabase[shortID] = req.body.longURL 
   res.redirect(`/urls/${shortID}`);
@@ -149,7 +165,12 @@ app.post("/urls/:id/", (req, res) => {
 
 // READ /// When clicked on the short url -> redirects to the listed website
 app.get("/u/:id", (req, res) => {
-  const longURL = urlDatabase[req.params.id];
+  const urlID = req.params.id;
+  
+  if (!urlDatabase[urlID]) {
+    return res.status(400).send("Sorry this url does not exist, try a different one!");
+  }
+  const longURL = urlDatabase[urlID];
   res.redirect(longURL);
 });
 
