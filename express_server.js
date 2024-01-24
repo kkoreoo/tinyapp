@@ -22,6 +22,12 @@ function generateRandomString () {
   return shortID;
 };
 
+// CREATE /// Retrieves Login username from input
+app.post("/login", (req, res) => {
+  res.cookie('username', req.body.username);
+  res.redirect("/urls");
+});
+
 // READ ///  Displays all the URLs in the database
 app.get("/urls", (req, res) => {
   const templateVars = { urls: urlDatabase };
@@ -39,7 +45,6 @@ app.post("/urls", (req, res) => {
   urlDatabase[shortID] = req.body.longURL 
   res.redirect(`/urls/${shortID}`);
 });
-
 
 // READ /// Will redirect user to urls unique page to edit
 app.get("/urls/:id/edit", (req, res) => {
