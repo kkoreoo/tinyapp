@@ -54,12 +54,13 @@ function generateRandomString () {
   return shortID;
 };
 
-// READ /// Renders the page /register
+// REGISTRATION-GET /// Renders the page /register
 app.get("/register", (req, res) => {
-  res.render("register");
+  const templateVars = { users };
+  res.render("register", templateVars);
 });
 
-// CREATE /// Retrieves the Registration data inputted
+// REGISTRATION-POST /// Retrieves the Registration data inputted
 app.post("/register", (req, res) => {
   const user = {};
   const userID = generateRandomString()
@@ -78,11 +79,15 @@ app.post("/register", (req, res) => {
   res.redirect("/urls");
 });
 
-// CREATE /// Retrieves Login username from input
+// LOGIN-GET // Renders login page 
+app.get("/login", (req, res) => {
+  res.render('login');
+})
+
+// LOGIN-POST /// Retrieves Login username from input
 app.post("/login", (req, res) => {
-  res.cookie('username', req.body.username);
-  res.redirect("/urls");
-});
+  res.redirect('/urls');
+})
 
 // CREATE /// Logouts out the user
 app.post("/logout", (req, res) => {
@@ -90,7 +95,7 @@ app.post("/logout", (req, res) => {
   res.redirect("urls");
 });
 
-// READ ///  Displays all the URLs in the database
+// URL HOME-GET ///  Displays all the URLs in the database
 app.get("/urls", (req, res) => {
 
   // user based off registration cookie value
@@ -103,14 +108,14 @@ app.get("/urls", (req, res) => {
   res.render("urls_index", templateVars);
 });
 
-// ADD /// Page to enter a new url;
+// ADD URL-GET /// Page to enter a new url;
 app.get("/urls/new", (req, res) => {
   const user = users[req.cookies["user_id"]];
   const templateVars = { user };
   res.render("urls_new", templateVars);
 });
 
-// CREATE /// New Url added will redirect to show only that url in our website
+// ADD URL-POST /// New Url added will redirect to show only that url in our website
 app.post("/urls", (req, res) => {
   shortID = generateRandomString();
   urlDatabase[shortID] = req.body.longURL 
