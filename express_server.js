@@ -1,8 +1,10 @@
 const express = require('express');
+const cookieParser = require('cookie-parser');
 const app = express();
 const PORT = 8080; 
 
 app.use(express.urlencoded({ extended: true }));
+app.use(cookieParser());
 
 app.set("view engine", "ejs")
 
@@ -28,15 +30,26 @@ app.post("/login", (req, res) => {
   res.redirect("/urls");
 });
 
+// CREATE /// Logouts out the user
+app.post("/logout", (req, res) => {
+  res.clearCookie('username');
+  res.redirect("urls");
+});
+
 // READ ///  Displays all the URLs in the database
 app.get("/urls", (req, res) => {
-  const templateVars = { urls: urlDatabase };
+  
+  const templateVars = { 
+    username: req.cookies["username"], 
+    urls: urlDatabase 
+  };
   res.render("urls_index", templateVars);
 });
 
 // ADD /// Page to enter a new url;
 app.get("/urls/new", (req, res) => {
-  res.render("urls_new");
+  const templateVars = { username: req.cookies["username"] };
+  res.render("urls_new", templateVars);
 });
 
 // CREATE /// New Url added will redirect to show only that url in our website
@@ -75,7 +88,7 @@ app.post("/urls/:id/delete", (req, res) => {
 // READ /// Will show the individual URL in it's own page.
 app.get("/urls/:id", (req, res) => {
   const shortUrl = req.params.id;
-  const templateVars = { id: shortUrl, longURL: urlDatabase[shortUrl] }
+  const templateVars = { id: shortUrl, longURL: urlDatabase[shortUrl], username: req.cookies["username"] }
   res.render("urls_show", templateVars);
 });
 
