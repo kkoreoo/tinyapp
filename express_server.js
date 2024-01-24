@@ -30,15 +30,15 @@ const users = {
 
 // will get an array of all the users details, look at all the emails to see if a duplicate is being used for registration creation
 function getUserbyEmail (obj, email) {
-  let userDetails = '';
+  let user = '';
 
   for (let id in obj) {
-    userDetails += Object.values(obj[id]);
+    if (obj[id].email === email) {
+      user = id;
+      return user;
+    }
   };
 
-  if(userDetails.includes(email)) {
-    return true;
-  } 
   return false;
 };
 
@@ -56,13 +56,13 @@ function generateRandomString () {
 
 // REGISTRATION-GET /// Renders the page /register
 app.get("/register", (req, res) => {
-  const templateVars = { users };
+  const user = users[req.cookies["user_id"]];
+  const templateVars = { user };
   res.render("register", templateVars);
 });
 
 // REGISTRATION-POST /// Retrieves the Registration data inputted
 app.post("/register", (req, res) => {
-  const user = {};
   const userID = generateRandomString()
   const email = req.body.email;
   const password = req.body.password;
@@ -71,11 +71,14 @@ app.post("/register", (req, res) => {
     return res.status(400).send("Error: Status Code 400");
   } 
 
-  user.id = userID
-  user.email = email;
-  user.password = password;
+  const user = {
+    id: userID,
+    email,
+    password,
+  };
+
   users[userID] = user;
-  res.cookie('user_id', user.id);
+
   res.redirect("/urls");
 });
 
@@ -84,15 +87,25 @@ app.get("/login", (req, res) => {
   res.render('login');
 })
 
-// LOGIN-POST /// Retrieves Login username from input
+// LOGIN-POST /// Retrieves login info from input
 app.post("/login", (req, res) => {
+  
+  const email = req.body.email;
+  const password = req.body.password;
+  const id = getUserbyEmail(users,email);
+
+  if(!email || !password || !id || password !== users[id].password) {
+    return res.status(403).send("Error: Incorrect Email and/or Password");
+  }
+
+  res.cookie('user_id', users[id].id);
   res.redirect('/urls');
 })
 
 // CREATE /// Logouts out the user
 app.post("/logout", (req, res) => {
-  res.clearCookie('username');
-  res.redirect("urls");
+  res.clearCookie('user_id');
+  res.redirect("/login");
 });
 
 // URL HOME-GET ///  Displays all the URLs in the database
@@ -104,7 +117,6 @@ app.get("/urls", (req, res) => {
     user, 
     urls: urlDatabase 
   };
-  console.log('users: ', users);
   res.render("urls_index", templateVars);
 });
 
