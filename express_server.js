@@ -13,6 +13,19 @@ const urlDatabase = {
   "9sm5xK": "http://www.google.com"
 };
 
+const users = {
+};
+
+// function getUserbyEmail (obj, email) {
+//   const userDetails = Object.values(obj);
+//   const user = '';
+//   if(userDetails.includes(email)) {
+//     user = userDetails.email;
+//   } 
+    
+// };
+
+
 //short ID generator
 function generateRandomString () {
   let shortID = '';
@@ -24,15 +37,26 @@ function generateRandomString () {
   return shortID;
 };
 
-// READ // Renders the page /register
+// READ /// Renders the page /register
 app.get("/register", (req, res) => {
   res.render("register");
 });
 
-// CREATE // Retrieves the Registration data inputted
-// app.post("/register", (req, res) => {
-
-// })
+// CREATE /// Retrieves the Registration data inputted
+app.post("/register", (req, res) => {
+  const user = {};
+  const userID = generateRandomString()
+  user.id = userID
+  user.email = req.body.email;
+  user.password = req.body.password;
+  users[userID] = user;
+  if(!user.email || !user.password) {
+    res.status(400).send("Error: Status Code 400");
+  } else {
+    res.cookie('user_id', user.id);
+    res.redirect("/urls");
+  }
+});
 
 // CREATE /// Retrieves Login username from input
 app.post("/login", (req, res) => {
@@ -48,17 +72,21 @@ app.post("/logout", (req, res) => {
 
 // READ ///  Displays all the URLs in the database
 app.get("/urls", (req, res) => {
-  
+
+  // user based off registration cookie value
+  const user = users[req.cookies["user_id"]];
   const templateVars = { 
-    username: req.cookies["username"], 
+    user, 
     urls: urlDatabase 
   };
+  console.log(templateVars);
   res.render("urls_index", templateVars);
 });
 
 // ADD /// Page to enter a new url;
 app.get("/urls/new", (req, res) => {
-  const templateVars = { username: req.cookies["username"] };
+  const user = users[req.cookies["user_id"]];
+  const templateVars = { user };
   res.render("urls_new", templateVars);
 });
 
@@ -98,7 +126,8 @@ app.post("/urls/:id/delete", (req, res) => {
 // READ /// Will show the individual URL in it's own page.
 app.get("/urls/:id", (req, res) => {
   const shortUrl = req.params.id;
-  const templateVars = { id: shortUrl, longURL: urlDatabase[shortUrl], username: req.cookies["username"] }
+  const user = users[req.cookies["user_id"]];
+  const templateVars = { id: shortUrl, longURL: urlDatabase[shortUrl], user }
   res.render("urls_show", templateVars);
 });
 
