@@ -1,12 +1,17 @@
 const express = require('express');
-const cookieParser = require('cookie-parser');
+const cookieSession = require('cookie-session');
+// const cookieParser = require('cookie-parser');
 const bcrypt = require('bcryptjs');
 const app = express();
 const PORT = 8080; 
 
 // middleware
 app.use(express.urlencoded({ extended: true }));
-app.use(cookieParser());
+app.use(cookieSession({
+  name: 'session',
+  keys: ['key1'],
+}));
+// app.use(cookieParser());
 
 // configs our render to ejs 
 app.set("view engine", "ejs")
@@ -71,13 +76,12 @@ function urlsForUser (user) {
       usersUrls[id] = urlDatabase[id].longURL;
     }
   }
-  console.log('inside function', usersUrls)
   return usersUrls;
 };
 
 // REGISTRATION-GET /// Renders the page /register
 app.get("/register", (req, res) => {
-  const user = users[req.cookies["user_id"]];
+  const user = req.session.user_id;
   if (user) {
     res.redirect("/urls");
   }
@@ -108,7 +112,7 @@ app.post("/register", (req, res) => {
 
 // LOGIN-GET // Renders login page 
 app.get("/login", (req, res) => {
-  const user = users[req.cookies["user_id"]];
+  const user = req.session.user_id;
   if (user) {
     res.redirect('/urls');
   }
@@ -126,13 +130,17 @@ app.post("/login", (req, res) => {
     return res.status(403).send("Error: Incorrect Email and/or Password");
   }
 
-  res.cookie('user_id', users[id].id);
+  req.session.user_id = users[id].id;
+  console.log('body:', req.body);
+  console.log('cookie name: ', req.session.user_id);
+  // res.cookie('user_id', users[id].id);
   res.redirect('/urls');
 })
 
 // LOGOUT-POST /// Logouts out the user
 app.post("/logout", (req, res) => {
-  res.clearCookie('user_id');
+  req.session = null;
+  // res.clearCookie('user_id');
   res.redirect("/login");
 });
 
@@ -140,35 +148,36 @@ app.post("/logout", (req, res) => {
 app.get("/urls", (req, res) => {
 
   // user based off registration cookie value
-  const user = users[req.cookies["user_id"]];
+  const user = req.session.user_id;
 
   if (!user) {
     return res.status(401).send('Please login to see the urls listed');
   }
 
-  const userUrls = urlsForUser(user.id)
+  const userUrls = urlsForUser(user)
 
   const templateVars = { 
     user, 
+    users,
     urls: userUrls 
   };
-  console.log("DB: ", users);
+  
   res.render("urls_index", templateVars);
 });
 
 // ADD URL-GET /// Page to enter a new url;
 app.get("/urls/new", (req, res) => {
-  const user = users[req.cookies["user_id"]];
+  const user = req.session.user_id;
   if (!user) {
     res.redirect('/urls');
   }
-  const templateVars = { user };
+  const templateVars = { user, users };
   res.render("urls_new", templateVars);
 });
 
 // ADD URL-POST /// New Url added will redirect to show only that url in our website
 app.post("/urls", (req, res) => {
-  const user = users[req.cookies["user_id"]];
+  const user = req.session.user_id;
 
   if (!user) {
     return res.status(401).send("You must be logged in to use this feature!");
@@ -177,7 +186,7 @@ app.post("/urls", (req, res) => {
 
   urlDatabase[shortID] = {
     longURL: req.body.longURL,
-    userID: req.cookies["user_id"],
+    userID: req.session.user_id,
   };
 
   res.redirect(`/urls/${shortID}`);
@@ -185,7 +194,7 @@ app.post("/urls", (req, res) => {
 
 // EDIT-READ /// Will redirect user to urls unique page to edit
 app.get("/urls/:id/edit", (req, res) => {
-  const user = users[req.cookies["user_id"]];
+  const user = req.session.user_id;
   const shortUrl = req.params.id;
   
   if (!user) {
@@ -194,7 +203,7 @@ app.get("/urls/:id/edit", (req, res) => {
     return res.status(400).send("Url does not exist, try a different one");
   }
 
-  const usersUrls = urlsForUser(user.id);
+  const usersUrls = urlsForUser(user);
 
   if(!Object.keys(usersUrls).includes(shortUrl)) {
     return res.status(403).send("Unable to make changes to a URL that is not associated with your account.");
@@ -206,7 +215,10 @@ app.get("/urls/:id/edit", (req, res) => {
 // EDIT-POST // Upon submitting the new long url, will replace existing one.
 app.post("/urls/:id/", (req, res) => {
   const shortUrl = req.params.id;
-  urlDatabase[shortUrl] = req.body.longURL;
+  urlDatabase[shortUrl] = {
+    longURL: req.body.longURL,
+    userID: req.session.user_id,
+  };
   res.redirect(`/urls/`);
 });
 
@@ -220,7 +232,7 @@ app.get("/u/:id", (req, res) => {
 
 // DELETE-POST /// Will delete the selected url and return to the /urls page
 app.post("/urls/:id/delete", (req, res) => {
-  const user = users[req.cookies["user_id"]];
+  const user = req.session.user_id;
   const shortUrl = req.params.id;
 
   if(!user) {
@@ -229,7 +241,7 @@ app.post("/urls/:id/delete", (req, res) => {
     return res.status(400).send("Url does not exist, please check and try again.");
   }
   
-  const usersUrls = urlsForUser(user.id);
+  const usersUrls = urlsForUser(user);
 
   if(!Object.keys(usersUrls).includes(shortUrl)) {
     return res.status(403).send("Unable to make changes to a URL that is not associated with your account.");
@@ -241,7 +253,7 @@ app.post("/urls/:id/delete", (req, res) => {
 
 // URL INDIVIDUAL PAGE-GET /// Will show the individual URL in it's own page.
 app.get("/urls/:id", (req, res) => {
-  const user = users[req.cookies["user_id"]];
+  const user = req.session.user_id;
   const shortUrl = req.params.id;
 
   if (!user) {
@@ -250,13 +262,13 @@ app.get("/urls/:id", (req, res) => {
     return res.status(400).send("Sorry this url does not exist, try a different one!");
   } 
 
-  const userUrls = urlsForUser(user.id);
+  const userUrls = urlsForUser(user);
 
   if (!Object.keys(userUrls).includes(shortUrl)) {
     return res.status(401).send("Sorry this is url is not associated with your account.");
   }
 
-  const templateVars = { id: shortUrl, longURL: urlDatabase[shortUrl].longURL, user }
+  const templateVars = { id: shortUrl, longURL: urlDatabase[shortUrl].longURL, user, users }
   res.render("urls_show", templateVars);
 });
 
