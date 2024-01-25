@@ -141,7 +141,7 @@ app.get("/urls", (req, res) => {
   const user = req.session.user_id;
 
   if (!user) {
-    return res.status(401).send('Please login to see the urls listed');
+    return res.redirect('/login');
   }
 
   const userUrls = urlsForUser(user);
@@ -216,7 +216,7 @@ app.post("/urls/:id/", (req, res) => {
 app.get("/u/:id", (req, res) => {
   const urlID = req.params.id;
 
-  const longURL = urlDatabase[urlID];
+  const longURL = urlDatabase[urlID].longURL;
   res.redirect(longURL);
 });
 
