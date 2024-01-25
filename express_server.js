@@ -11,6 +11,7 @@ app.use(cookieSession({
   name: 'session',
   keys: ['key1', 'key2'],
 }));
+app.use(express.json());
 
 // configs our render to ejs 
 app.set("view engine", "ejs")
@@ -32,12 +33,12 @@ const users = {
   uZinGM: {
     id: "uZinGM",
     email: "a@a.com",
-    password: "1234",
+    password: bcrypt.hashSync("1234", 10),
   },
   aJ48lW: {
     id: "aJ48lW",
     email: "b@b.com",
-    password: "4321",
+    password: bcrypt.hashSync("4321", 10),
   },
 };
 
@@ -62,6 +63,14 @@ function urlsForUser (user) {
   }
   return usersUrls;
 };
+
+app.get('/', (req, res) => {
+  const user = req.session.user_id;
+  if (!user) {
+    return res.redirect("/login");
+  }
+  res.redirect('/urls');
+});
 
 // REGISTRATION-GET /// Renders the page /register
 app.get("/register", (req, res) => {
@@ -115,9 +124,6 @@ app.post("/login", (req, res) => {
   }
 
   req.session.user_id = users[id].id;
-  console.log('body:', req.body);
-  console.log('cookie name: ', req.session.user_id);
-  // res.cookie('user_id', users[id].id);
   res.redirect('/urls');
 })
 
@@ -153,7 +159,7 @@ app.get("/urls", (req, res) => {
 app.get("/urls/new", (req, res) => {
   const user = req.session.user_id;
   if (!user) {
-    res.redirect('/urls');
+    return res.redirect('/login');
   }
   const templateVars = { user, users };
   res.render("urls_new", templateVars);
@@ -249,7 +255,7 @@ app.get("/urls/:id", (req, res) => {
   const userUrls = urlsForUser(user);
 
   if (!Object.keys(userUrls).includes(shortUrl)) {
-    return res.status(401).send("Sorry this is url is not associated with your account.");
+    return res.status(403).send("Sorry this is url is not associated with your account.");
   }
 
   const templateVars = { id: shortUrl, longURL: urlDatabase[shortUrl].longURL, user, users }
