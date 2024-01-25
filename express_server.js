@@ -1,6 +1,6 @@
 const express = require('express');
 const cookieSession = require('cookie-session');
-// const cookieParser = require('cookie-parser');
+const { getUserByEmail } = require('./helpers');
 const bcrypt = require('bcryptjs');
 const app = express();
 const PORT = 8080; 
@@ -9,9 +9,8 @@ const PORT = 8080;
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieSession({
   name: 'session',
-  keys: ['key1'],
+  keys: ['key1', 'key2'],
 }));
-// app.use(cookieParser());
 
 // configs our render to ejs 
 app.set("view engine", "ejs")
@@ -41,21 +40,6 @@ const users = {
     password: "4321",
   },
 };
-
-// Given an email will find the user with the associated email if present
-function getUserbyEmail (obj, email) {
-  let user = '';
-
-  for (let id in obj) {
-    if (obj[id].email === email) {
-      user = id;
-      return user;
-    }
-  };
-
-  return false;
-};
-
 
 //short ID generator
 function generateRandomString () {
@@ -95,7 +79,7 @@ app.post("/register", (req, res) => {
   const password = req.body.password;
   const hashedPassword = bcrypt.hashSync(password, 10)
 
-  if (!email || !password || getUserbyEmail(users, email)) {
+  if (!email || !password || getUserByEmail(users, email)) {
     return res.status(400).send("Error: Status Code 400");
   } 
 
@@ -124,9 +108,9 @@ app.post("/login", (req, res) => {
   
   const email = req.body.email;
   const password = req.body.password;
-  const id = getUserbyEmail(users,email);
+  const id = getUserByEmail(users, email);
 
-  if(!email || !password || !id || bcrypt.compareSync(password, users[id].password)) {
+  if(!email || !password || !id || !bcrypt.compareSync(password, users[id].password)) {
     return res.status(403).send("Error: Incorrect Email and/or Password");
   }
 
@@ -161,7 +145,7 @@ app.get("/urls", (req, res) => {
     users,
     urls: userUrls 
   };
-  
+
   res.render("urls_index", templateVars);
 });
 
