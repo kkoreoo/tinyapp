@@ -1,5 +1,6 @@
 const express = require('express');
 const cookieParser = require('cookie-parser');
+const bcrypt = require('bcryptjs');
 const app = express();
 const PORT = 8080; 
 
@@ -88,6 +89,7 @@ app.post("/register", (req, res) => {
   const userID = generateRandomString()
   const email = req.body.email;
   const password = req.body.password;
+  const hashedPassword = bcrypt.hashSync(password, 10)
 
   if (!email || !password || getUserbyEmail(users, email)) {
     return res.status(400).send("Error: Status Code 400");
@@ -96,7 +98,7 @@ app.post("/register", (req, res) => {
   const user = {
     id: userID,
     email,
-    password,
+    password: hashedPassword,
   };
 
   users[userID] = user;
@@ -120,7 +122,7 @@ app.post("/login", (req, res) => {
   const password = req.body.password;
   const id = getUserbyEmail(users,email);
 
-  if(!email || !password || !id || password !== users[id].password) {
+  if(!email || !password || !id || bcrypt.compareSync(password, users[id].password)) {
     return res.status(403).send("Error: Incorrect Email and/or Password");
   }
 
@@ -150,7 +152,7 @@ app.get("/urls", (req, res) => {
     user, 
     urls: userUrls 
   };
-  console.log("urls: ", userUrls);
+  console.log("DB: ", users);
   res.render("urls_index", templateVars);
 });
 
