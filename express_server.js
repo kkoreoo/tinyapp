@@ -3,12 +3,14 @@ const cookieSession = require('cookie-session');
 const { getUserByEmail, generateRandomString, urlsForUser, checkValidAccess } = require('./helpers');
 const { urlDatabase, users } = require('./database');
 const bcrypt = require('bcryptjs');
+const methodOverride = require('method-override');
 const app = express();
 const PORT = 8080;
 
 // middleware
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
+app.use(methodOverride('_method'))
 app.use(cookieSession({
   name: 'session',
   keys: ['key1', 'key2'],
@@ -173,22 +175,21 @@ app.get("/urls/:id/edit", (req, res) => {
   const shortUrl = req.params.id;
   
   // checking if they have valid access to request url
-  if (!checkValidAccess(user, res, shortUrl)) return;
+  if (checkValidAccess(user, res, shortUrl)) return;
 
   res.redirect(`/urls/${shortUrl}`);
 });
 
 // EDIT-POST // Upon submitting the new long url, will replace existing one.
-app.post("/urls/:id/", (req, res) => {
+app.put("/urls/:id/", (req, res) => {
   const user = req.session.user_id;
   const shortUrl = req.params.id;
 
   // checking if they have valid access to url
-  if (!checkValidAccess(user, res, shortUrl)) {
-    return;
-
-  // if they submit an empty form for the long URL
-  } else if (!req.body.longURL) {
+  if (checkValidAccess(user, res, shortUrl)) return;
+  
+  // If the user submits an empty form as a long URL
+  if (!req.body.longURL) {
     return res.status(401).send("Please enter a URL into the form");
   }
 
@@ -197,6 +198,30 @@ app.post("/urls/:id/", (req, res) => {
     userID: req.session.user_id,
   };
   res.redirect(`/urls/`);
+});
+
+// DELETE-POST /// Will delete the selected url and return to the /urls page
+app.delete("/urls/:id/", (req, res) => {
+  const user = req.session.user_id;
+  const shortUrl = req.params.id;
+
+  // checking if they have valid access to url
+  if (checkValidAccess(user, res, shortUrl)) return;
+
+  delete urlDatabase[shortUrl];
+  res.redirect("/urls");
+});
+
+// URL INDIVIDUAL PAGE-GET /// Will show the individual URL in it's own page.
+app.get("/urls/:id", (req, res) => {
+  const user = req.session.user_id;
+  const shortUrl = req.params.id;
+
+  // checking if they have valid access to url
+  if (checkValidAccess(user, res, shortUrl)) return;
+
+  const templateVars = { id: shortUrl, longURL: urlDatabase[shortUrl].longURL, user, users };
+  res.render("urls_show", templateVars);
 });
 
 // SHORTURL-REDIRECT-READ /// When clicked on the short url -> redirects to the listed website
@@ -212,29 +237,6 @@ app.get("/u/:id", (req, res) => {
   res.redirect(longURL);
 });
 
-// DELETE-POST /// Will delete the selected url and return to the /urls page
-app.post("/urls/:id/delete", (req, res) => {
-  const user = req.session.user_id;
-  const shortUrl = req.params.id;
-
-  // checking if they have valid access to url
-  if (!checkValidAccess(user, res, shortUrl)) return;
-
-  delete urlDatabase[shortUrl];
-  res.redirect("/urls");
-});
-
-// URL INDIVIDUAL PAGE-GET /// Will show the individual URL in it's own page.
-app.get("/urls/:id", (req, res) => {
-  const user = req.session.user_id;
-  const shortUrl = req.params.id;
-
-  // checking if they have valid access to url
-  if (!checkValidAccess(user, res, shortUrl)) return;
-
-  const templateVars = { id: shortUrl, longURL: urlDatabase[shortUrl].longURL, user, users };
-  res.render("urls_show", templateVars);
-});
 
 app.listen(PORT, () => {
   console.log(`Example app listening on port ${PORT}`);
