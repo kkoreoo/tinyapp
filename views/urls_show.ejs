@@ -33,6 +33,21 @@
           <button type="submit" class="btn btn-primary">Submit</button>
         </form>
       </div>
+      <hr class="solid">
+      <div>
+        <p><b><i>Number of visits to ShortURL:</i></b> <%= visits %><p>
+        <p><b><i>Number of Unique visits to ShortURL:</i></b> <%= uniqueVisits.length %></p>
+        <p><b><i>List of Visitor and When they Visited the Short URL:</i></b></p>
+        <tbody>
+          <% for (let user of timeUserVisits ) { %>
+            <tr>
+              <td><b><%= Object.keys(user) %></b>:</td>
+              <td><%= Object.values(user) %></td>
+              <br>
+            </tr>
+          <% } %>
+        </tbody>
+      </div>
     </div>
     <!-- Bootstrap JS -->
     <script

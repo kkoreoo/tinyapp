@@ -32,7 +32,7 @@ app.get('/', (req, res) => {
 app.get("/register", (req, res) => {
   const user = req.session.user_id;
   if (user) {
-    res.redirect("/urls");
+    return res.redirect("/urls");
   }
 
   // data to load header
@@ -164,6 +164,9 @@ app.post("/urls", (req, res) => {
   urlDatabase[shortID] = {
     longURL: req.body.longURL,
     userID: req.session.user_id,
+    visits: 0,
+    uniqueVisits: [],
+    timeStamp: [],
   };
 
   res.redirect(`/urls/${shortID}`);
@@ -220,7 +223,17 @@ app.get("/urls/:id", (req, res) => {
   // checking if they have valid access to url
   if (checkValidAccess(user, res, shortUrl)) return;
 
-  const templateVars = { id: shortUrl, longURL: urlDatabase[shortUrl].longURL, user, users };
+  const templateVars = { 
+    id: shortUrl, 
+    longURL: urlDatabase[shortUrl].longURL, 
+    user, 
+    users, 
+    visits: urlDatabase[shortUrl].visits,
+    uniqueVisits: urlDatabase[shortUrl].uniqueVisits,
+    timeUserVisits: urlDatabase[shortUrl].timeStamp
+  };
+
+  console.log (urlDatabase[shortUrl].uniqueVisits);
   res.render("urls_show", templateVars);
 });
 
@@ -233,6 +246,22 @@ app.get("/u/:id", (req, res) => {
     return res.status(404).send("Sorry this URL ID does exist in our database, try a different one or add it using our create function!");
   }
 
+  const user = req.session.user_id;
+  const uniqueVisits = urlDatabase[urlID].uniqueVisits
+  if (user && !uniqueVisits.includes(user)) {
+    uniqueVisits.push(user);
+  }
+  // counter to track number of visits to a shortURL
+  urlDatabase[urlID].visits += 1;
+
+  //generating a time stamp and ID for each visit
+  const timeUserVisits = {};
+  const currentDate = new Date();
+  const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "November", "December"];
+  timeUserVisits[generateRandomString()] = `${months[currentDate.getMonth()]} ${currentDate.getDate()}, ${currentDate.getFullYear()} @ ${currentDate.getHours()}:${currentDate.getMinutes()}:${currentDate.getSeconds()}`;
+  urlDatabase[urlID].timeStamp.push(timeUserVisits);
+
+  
   const longURL = urlDatabase[urlID].longURL;
   res.redirect(longURL);
 });
